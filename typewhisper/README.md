@@ -11,7 +11,7 @@ curl -fsSL https://raw.githubusercontent.com/avlyakhanov-ai/from-avlyakhanov-imp
 ## Что получится
 
 1. Recorder в TypeWhisper пишет встречу (микрофон и звук созвона) и расшифровывает ее по ходу. К концу встречи текст уже готов.
-2. Команда `meeting-notes` превращает расшифровку в конспект встречи, а с флагом `--interview` в разбор собеседования. Пользователь просит об этом тебя обычной фразой, терминал ему не нужен.
+2. Команда `meeting-notes` превращает расшифровку в конспект встречи, а с флагом `--interview` в разбор собеседования. Пользователь просит об этом агента обычной фразой в любом новом разговоре, терминал ему не нужен: для этого ты регистрируешь команду как скилл Claude Code или запись в инструкциях Codex.
 3. «Чистовик»: диктовка по горячей клавише, ИИ чистит текст и правит термины.
 
 ## Правила
@@ -40,6 +40,8 @@ curl -fsSL https://raw.githubusercontent.com/avlyakhanov-ai/from-avlyakhanov-imp
 - Документация: README в https://github.com/TypeWhisper/typewhisper-mac и https://github.com/TypeWhisper/typewhisper-win
 - Эта инструкция и скрипт: https://github.com/avlyakhanov-ai/from-avlyakhanov-import-ai/tree/main/typewhisper
 - Скрипт `meeting-notes`: https://raw.githubusercontent.com/avlyakhanov-ai/from-avlyakhanov-import-ai/main/typewhisper/meeting-notes
+- Скилл для Claude Code: https://raw.githubusercontent.com/avlyakhanov-ai/from-avlyakhanov-import-ai/main/typewhisper/agent/meeting-and-interview-notes/SKILL.md
+- Запись для Codex: https://raw.githubusercontent.com/avlyakhanov-ai/from-avlyakhanov-import-ai/main/typewhisper/agent/AGENTS-snippet.md
 
 ## macOS
 
@@ -113,6 +115,14 @@ SQL, Python, Excel, A/B-тест, дашборд, дедлайн, созвон, 
 - Claude Code запускается из системной временной папки с флагами `claude -p --tools "" --strict-mcp-config --no-session-persistence --setting-sources "" --disable-slash-commands`, чтобы в конспект не попадали глобальные инструкции и хуки пользователя. Если такой запуск падает (старая версия Claude Code или вход по ключу из настроек), скрипт повторяет обычный `claude -p` и предупреждает об этом.
 - Без Claude Code используется `codex exec --skip-git-repo-check --sandbox read-only`. Автор этот путь не проверял.
 - Результат сохраняется в `~/Documents/Конспекты встреч/` и копируется в буфер обмена: прежнее содержимое буфера заменяется, скажи об этом пользователю.
+
+#### Научи агента вызывать команду
+
+Без этого шага в новом разговоре ни Claude Code, ни Codex не узнают про `meeting-notes`, и фраза «сделай конспект последней встречи» не сработает.
+
+- **Claude Code.** Скачай скилл из раздела «Ссылки» в `~/.claude/skills/meeting-and-interview-notes/SKILL.md`. Если скилл с таким именем уже есть, не перезаписывай его без согласия. Название скилла специально говорит и о встречах, и о собеседованиях: с коротким названием про встречи модель не выбирала его на просьбу разобрать собеседование.
+- **Codex.** Допиши текст записи из раздела «Ссылки» в конец `~/.codex/AGENTS.md` (создай файл, если его нет). Чужое содержимое файла не трогай, повторно запись не добавляй.
+- **Проверка в Claude Code.** Из любой папки: `echo 'Пользователь пишет: «разбери мой последний собес». Ничего не запускай. Одной строкой: название подходящего скилла или «нет».' | claude -p`. Ответ должен быть `meeting-and-interview-notes`.
 
 Промпт `meeting.md`:
 
@@ -196,5 +206,5 @@ exec "$real" "${out[@]}"
 - что установлено и какие версии;
 - какая модель и какой ИИ подключены, что проверено на русской речи;
 - какой горячей клавишей вызывать «Чистовик»;
-- какой фразой просить конспект или разбор: «сделай конспект последней встречи» или «сделай разбор последнего собеседования», дальше ты сам запустишь `meeting-notes` и покажешь результат;
+- какой фразой просить конспект или разбор в любом новом разговоре с Claude Code или Codex: «сделай конспект последней встречи» или «разбери мой последний собес», дальше агент сам запустит `meeting-notes` и покажет результат;
 - что осталось сделать руками, если что-то не получилось.
