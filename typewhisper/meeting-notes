@@ -25,11 +25,27 @@ from pathlib import Path
 
 HOME = Path.home()
 # Если Recorder сохраняет записи в другую папку, поменяй путь здесь.
-RECORDINGS = Path(os.environ.get("MEETING_NOTES_RECORDINGS", HOME / "Documents" / "TypeWhisper Recordings"))
 OUT_DIR = Path(os.environ.get("MEETING_NOTES_DIR", HOME / "Documents" / "Конспекты встреч"))
 PROMPTS = Path(os.environ.get("MEETING_NOTES_PROMPTS", HOME / ".local" / "share" / "meeting-notes"))
 TIMEOUT = 600
 AUDIO = {".wav", ".m4a", ".mp3", ".aiff", ".caf"}
+
+
+def _recordings_dir():
+    """Папка Recorder: из переменной или та из двух обычных, где запись свежее."""
+    if os.environ.get("MEETING_NOTES_RECORDINGS"):
+        return Path(os.environ["MEETING_NOTES_RECORDINGS"])
+    cands = [HOME / "TypeWhisper Recordings", HOME / "Documents" / "TypeWhisper Recordings"]
+
+    def newest(d):
+        try:
+            return max((f.stat().st_mtime for f in d.iterdir() if f.suffix.lower() in AUDIO), default=0)
+        except OSError:
+            return 0
+    return max(cands, key=newest)
+
+
+RECORDINGS = _recordings_dir()
 
 
 def fail(msg):
@@ -49,7 +65,9 @@ def latest_recorder_transcript():
              "или поправь RECORDINGS в начале скрипта.")
     files = [p for p in RECORDINGS.iterdir() if p.is_file()]
     texts = [p for p in files if p.suffix == ".txt" and p.stat().st_size > 0]
-    audio = [p for p in files if p.suffix.lower() in AUDIO]
+    # Запись, которую Recorder не смог расшифровать (например, случайные пару секунд), пропускаем.
+    audio = [p for p in files if p.suffix.lower() in AUDIO
+             and not Path(f"{p}.transcription-failure.json").exists()]
     if audio:
         last_audio = max(audio, key=lambda p: p.stat().st_mtime)
         twin = last_audio.with_suffix(".txt")
